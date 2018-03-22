@@ -19,11 +19,11 @@ function StaticSiteGeneratorWebpackPlugin(options) {
   this.crawl = Boolean(options.crawl);
 }
 
-StaticSiteGeneratorWebpackPlugin.prototype.apply = function(compiler) {
+StaticSiteGeneratorWebpackPlugin.prototype.apply = function (compiler) {
   var self = this;
 
-  compiler.plugin('this-compilation', function(compilation) {
-    compilation.plugin('optimize-assets', function(_, done) {
+  compiler.plugin('this-compilation', function (compilation) {
+    compilation.plugin('optimize-assets', function (_, done) {
       var renderPromises;
 
       var webpackStats = compilation.getStats();
@@ -60,7 +60,7 @@ StaticSiteGeneratorWebpackPlugin.prototype.apply = function(compiler) {
 };
 
 function renderPaths(crawl, userLocals, paths, render, assets, webpackStats, compilation) {
-  var renderPromises = paths.map(function(outputPath) {
+  var renderPromises = paths.map(function (outputPath) {
     var locals = {
       path: outputPath,
       assets: assets,
@@ -78,10 +78,10 @@ function renderPaths(crawl, userLocals, paths, render, assets, webpackStats, com
       Promise.fromNode(render.bind(null, locals));
 
     return renderPromise
-      .then(function(output) {
+      .then(function (output) {
         var outputByPath = typeof output === 'object' ? output : makeObject(outputPath, output);
 
-        var assetGenerationPromises = Object.keys(outputByPath).map(function(key) {
+        var assetGenerationPromises = Object.keys(outputByPath).map(function (key) {
           var rawSource = outputByPath[key];
           var assetName = pathToAssetName(key);
 
@@ -103,7 +103,7 @@ function renderPaths(crawl, userLocals, paths, render, assets, webpackStats, com
 
         return Promise.all(assetGenerationPromises);
       })
-      .catch(function(err) {
+      .catch(function (err) {
         compilation.errors.push(err.stack);
       });
   });
@@ -111,7 +111,7 @@ function renderPaths(crawl, userLocals, paths, render, assets, webpackStats, com
   return Promise.all(renderPromises);
 }
 
-var findAsset = function(src, compilation, webpackStatsJson) {
+var findAsset = function (src, compilation, webpackStatsJson) {
   if (!src) {
     var chunkNames = Object.keys(webpackStatsJson.assetsByChunkName);
 
@@ -138,7 +138,7 @@ var findAsset = function(src, compilation, webpackStatsJson) {
 };
 
 // Shamelessly stolen from html-webpack-plugin - Thanks @ampedandwired :)
-var getAssetsFromCompilation = function(compilation, webpackStatsJson) {
+var getAssetsFromCompilation = function (compilation, webpackStatsJson) {
   var assets = {};
   for (var chunk in webpackStatsJson.assetsByChunkName) {
     var chunkValue = webpackStatsJson.assetsByChunkName[chunk];
@@ -181,13 +181,13 @@ function relativePathsFromHtml(options) {
   var $ = cheerio.load(html);
 
   var linkHrefs = $('a[href]')
-    .map(function(i, el) {
+    .map(function (i, el) {
       return $(el).attr('href');
     })
     .get();
 
   var iframeSrcs = $('iframe[src]')
-    .map(function(i, el) {
+    .map(function (i, el) {
       return $(el).attr('src');
     })
     .get();
@@ -195,7 +195,7 @@ function relativePathsFromHtml(options) {
   return []
     .concat(linkHrefs)
     .concat(iframeSrcs)
-    .map(function(href) {
+    .map(function (href) {
       if (href.indexOf('//') === 0) {
         return null
       }
@@ -210,7 +210,7 @@ function relativePathsFromHtml(options) {
         parsed.path :
         url.resolve(currentPath, parsed.path);
     })
-    .filter(function(href) {
+    .filter(function (href) {
       return href != null;
     });
 }
