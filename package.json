@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/markdalgleish/static-site-generator-webpack-plugin",
   "dependencies": {
+    "better-queue": "^3.8.6",
     "bluebird": "^3.0.5",
     "cheerio": "^0.22.0",
     "eval": "^0.1.0",

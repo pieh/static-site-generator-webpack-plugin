@@ -4,6 +4,7 @@ var path = require('path');
 var cheerio = require('cheerio');
 var url = require('url');
 var Promise = require('bluebird');
+var Queue = require('better-queue')
 
 function StaticSiteGeneratorWebpackPlugin(options) {
   if (arguments.length > 1) {
@@ -108,11 +109,19 @@ function renderPath({ crawl, userLocals, path, render, assets, webpackStats, com
 }
 
 function renderPaths({ paths, ...rest }) {
-  var renderPromises = paths.map(path => {
-    renderPath({ path, ...rest })
-  });
+  return new Promise(resolve => {
+    var queue = new Queue(function (path, callback) {
+      renderPath({ path, ...rest }).then(callback)
+    }, { concurrent: 20 })
 
-  return Promise.all(renderPromises);
+    paths.forEach(path => {
+      queue.push(path)
+    })
+
+    queue.on(`drain`, () => {
+      resolve()
+    })
+  })
 }
 
 var findAsset = function (src, compilation, webpackStatsJson) {
