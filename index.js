@@ -20,6 +20,8 @@ function StaticSiteGeneratorWebpackPlugin(options) {
   this.crawl = Boolean(options.crawl);
 }
 
+var queue = null
+
 StaticSiteGeneratorWebpackPlugin.prototype.apply = function (compiler) {
   var self = this;
 
@@ -50,7 +52,11 @@ StaticSiteGeneratorWebpackPlugin.prototype.apply = function (compiler) {
           throw new Error('Export from "' + self.entry + '" must be a function that returns an HTML string. Is output.libraryTarget in the configuration set to "umd"?');
         }
 
-        renderPaths({ crawl: self.crawl, locals: self.locals, paths: self.paths, render, assets, webpackStats, compilation })
+        queue = new Queue(function (htmlPath, callback) {
+          renderPath({ htmlPath, crawl: self.crawl, locals: self.locals, render, assets, webpackStats, compilation }).then(callback)
+        }, { concurrent: 10 })
+
+        renderPaths(self.paths)
           .nodeify(done);
       } catch (err) {
         compilation.errors.push(err.stack);
@@ -60,9 +66,9 @@ StaticSiteGeneratorWebpackPlugin.prototype.apply = function (compiler) {
   });
 };
 
-function renderPath({ crawl, userLocals, path, render, assets, webpackStats, compilation }) {
+function renderPath({ crawl, userLocals, htmlPath, render, assets, webpackStats, compilation }) {
   var locals = {
-    path,
+    path: htmlPath,
     assets: assets,
     webpackStats: webpackStats
   };
@@ -79,7 +85,7 @@ function renderPath({ crawl, userLocals, path, render, assets, webpackStats, com
 
   return renderPromise
     .then(function (output) {
-      var outputByPath = typeof output === 'object' ? output : makeObject(path, output);
+      var outputByPath = typeof output === 'object' ? output : makeObject(htmlPath, output);
 
       var assetGenerationPromises = Object.keys(outputByPath).map(function (key) {
         var rawSource = outputByPath[key];
@@ -95,9 +101,9 @@ function renderPath({ crawl, userLocals, path, render, assets, webpackStats, com
           var relativePaths = relativePathsFromHtml({
             source: rawSource,
             path: key
-          });
-
-          return renderPaths({ crawl, userLocals, paths: relativePaths, render, assets, webpackStats, compilation });
+          }).forEach(path => {
+            queue.push(path)
+          })
         }
       });
 
@@ -108,12 +114,8 @@ function renderPath({ crawl, userLocals, path, render, assets, webpackStats, com
     });
 }
 
-function renderPaths({ paths, ...rest }) {
+function renderPaths(paths) {
   return new Promise(resolve => {
-    var queue = new Queue(function (path, callback) {
-      renderPath({ path, ...rest }).then(callback)
-    }, { concurrent: 20 })
-
     paths.forEach(path => {
       queue.push(path)
     })
