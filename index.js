@@ -5,6 +5,7 @@ var cheerio = require('cheerio');
 var url = require('url');
 var Promise = require('bluebird');
 var Queue = require('better-queue')
+var fs = require('fs-extra')
 
 function StaticSiteGeneratorWebpackPlugin(options) {
   if (arguments.length > 1) {
@@ -95,8 +96,6 @@ function renderPath({ crawl, userLocals, htmlPath, render, assets, webpackStats,
           return;
         }
 
-        compilation.assets[assetName] = new RawSource(rawSource);
-
         if (crawl) {
           var relativePaths = relativePathsFromHtml({
             source: rawSource,
@@ -105,9 +104,9 @@ function renderPath({ crawl, userLocals, htmlPath, render, assets, webpackStats,
             queue.push(path)
           })
         }
-      });
 
-      return Promise.all(assetGenerationPromises);
+        return fs.outputFile(path.join(process.cwd(), 'public', assetName), rawSource)
+      });
     })
     .catch(function (err) {
       compilation.errors.push(err.stack);
